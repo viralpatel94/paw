@@ -1,9 +1,4 @@
-"""Tool definitions exposed to the LLM.
-
-These are the ONLY actions the agent can take. Each maps to a Python
-implementation in tools/. The schemas are enforced by the Anthropic API;
-policy is enforced separately in agent/validator.py before execution.
-"""
+"""Tool definitions exposed to the LLM."""
 
 TOOL_DEFS = [
     {
@@ -67,7 +62,7 @@ TOOL_DEFS = [
         "name": "deploy_to_dev",
         "description": (
             "Update the DEV ECS service to the given task definition revision and "
-            "wait for the service to stabilize. No approval required for dev."
+            "wait for the service to stabilize."
         ),
         "input_schema": {
             "type": "object",
@@ -79,68 +74,16 @@ TOOL_DEFS = [
         },
     },
     {
-        "name": "request_prod_approval",
-        "description": (
-            "Post a human approval request (Slack/GitHub) for a PROD deploy of a "
-            "specific task definition. Returns a request_id. This does NOT deploy. "
-            "Production deploys are gated on a human; you cannot bypass this."
-        ),
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "service": {"type": "string", "description": "ECS service name (prod)."},
-                "task_def_arn": {"type": "string"},
-                "summary": {
-                    "type": "string",
-                    "description": (
-                        "A concise, human-readable summary of what is being "
-                        "deployed and the result of dev smoke tests."
-                    ),
-                },
-            },
-            "required": ["service", "task_def_arn", "summary"],
-        },
-    },
-    {
-        "name": "check_approval_status",
-        "description": (
-            "Check whether a prod approval request has been approved, rejected, or "
-            "is still pending. Returns the current status."
-        ),
-        "input_schema": {
-            "type": "object",
-            "properties": {"request_id": {"type": "string"}},
-            "required": ["request_id"],
-        },
-    },
-    {
-        "name": "deploy_to_prod",
-        "description": (
-            "Update the PROD ECS service to the given task definition. This FAILS "
-            "unless a matching human approval is on record for this exact "
-            "task_def_arn and request_id. Always check_approval_status first."
-        ),
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "service": {"type": "string", "description": "ECS service name (prod)."},
-                "task_def_arn": {"type": "string"},
-                "request_id": {"type": "string"},
-            },
-            "required": ["service", "task_def_arn", "request_id"],
-        },
-    },
-    {
         "name": "run_smoke_test",
         "description": (
-            "Run health/smoke checks against a service in a given environment. "
+            "Run health/smoke checks against the dev service. "
             "Returns pass/fail with details. Always smoke test after a deploy."
         ),
         "input_schema": {
             "type": "object",
             "properties": {
                 "service": {"type": "string"},
-                "env": {"type": "string", "enum": ["dev", "prod"]},
+                "env": {"type": "string", "enum": ["dev"]},
             },
             "required": ["service", "env"],
         },
@@ -148,14 +91,14 @@ TOOL_DEFS = [
     {
         "name": "rollback",
         "description": (
-            "Roll an ECS service back to its previous stable task definition "
+            "Roll the dev ECS service back to its previous stable task definition "
             "revision. Use when a smoke test fails after a deploy."
         ),
         "input_schema": {
             "type": "object",
             "properties": {
                 "service": {"type": "string"},
-                "env": {"type": "string", "enum": ["dev", "prod"]},
+                "env": {"type": "string", "enum": ["dev"]},
             },
             "required": ["service", "env"],
         },
