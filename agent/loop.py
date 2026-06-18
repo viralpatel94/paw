@@ -96,8 +96,7 @@ def run_deploy(event: dict) -> dict:
     user_msg = (
         "A new commit landed and must be deployed. Follow your workflow.\n\n"
         f"Available repos: {sorted(config.ALLOWED_ECR_REPOS)}\n"
-        f"Dev services: {sorted(config.ALLOWED_SERVICES['dev'])}\n"
-        f"Prod services: {sorted(config.ALLOWED_SERVICES['prod'])}\n\n"
+        f"Dev services: {sorted(config.ALLOWED_SERVICES['dev'])}\n\n"
         f"<commit_data>\n{json.dumps(event)}\n</commit_data>"
     )
     messages = [{"role": "user", "content": user_msg}]
