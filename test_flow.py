@@ -58,9 +58,9 @@ def record(name):
 
 validator._IMPL["get_commit_diff"] = lambda sha: {"sha": sha, "changed_files": ["A\tapp.py"], "diff": "..."}
 validator._IMPL["build_and_push_image"] = lambda **kw: (CALLS.append(("build", kw)) or
-    {"image_ref": "ACCT.dkr.ecr.us-east-1.amazonaws.com/myapp-api@sha256:abc123"})
+    {"image_ref": "ACCT.dkr.ecr.us-east-1.amazonaws.com/paw-web@sha256:abc123"})
 validator._IMPL["register_task_definition"] = lambda **kw: (CALLS.append(("register", kw)) or
-    {"task_def_arn": "arn:aws:ecs:us-east-1:ACCT:task-definition/myapp-api:42"})
+    {"task_def_arn": "arn:aws:ecs:us-east-1:ACCT:task-definition/paw-web:42"})
 validator._IMPL["deploy_to_dev"] = lambda **kw: (CALLS.append(("deploy_dev", kw)) or
     {"status": "deployed", "env": "dev"})
 validator._IMPL["request_prod_approval"] = lambda **kw: (CALLS.append(("request_approval", kw)) or
@@ -94,19 +94,19 @@ class Resp:
         self.content = content
         self.stop_reason = stop
 
-ARN = "arn:aws:ecs:us-east-1:ACCT:task-definition/myapp-api:42"
-IMG = "ACCT.dkr.ecr.us-east-1.amazonaws.com/myapp-api@sha256:abc123"
+ARN = "arn:aws:ecs:us-east-1:ACCT:task-definition/paw-web:42"
+IMG = "ACCT.dkr.ecr.us-east-1.amazonaws.com/paw-web@sha256:abc123"
 
 
 def script_first_pass():
     """Build -> register -> dev deploy -> dev smoke -> request approval -> stop."""
     steps = [
         Resp([txt("Inspecting commit."), tu("get_commit_diff", sha="deadbeef")]),
-        Resp([tu("build_and_push_image", dockerfile_path="Dockerfile", ecr_repo="myapp-api")]),
-        Resp([tu("register_task_definition", family="myapp-api", image_ref=IMG)]),
-        Resp([tu("deploy_to_dev", service="myapp-api-dev", task_def_arn=ARN)]),
-        Resp([tu("run_smoke_test", service="myapp-api-dev", env="dev")]),
-        Resp([tu("request_prod_approval", service="myapp-api-prod",
+        Resp([tu("build_and_push_image", dockerfile_path="Dockerfile", ecr_repo="paw-web")]),
+        Resp([tu("register_task_definition", family="paw-web", image_ref=IMG)]),
+        Resp([tu("deploy_to_dev", service="paw-web-dev", task_def_arn=ARN)]),
+        Resp([tu("run_smoke_test", service="paw-web-dev", env="dev")]),
+        Resp([tu("request_prod_approval", service="paw-web-prod",
                  task_def_arn=ARN, summary="dev green")]),
         Resp([txt("Dev is green. Awaiting prod approval.")], stop="end_turn"),
     ]
@@ -116,7 +116,7 @@ def script_first_pass():
 def script_prod_no_approval():
     """Malicious/buggy: tries deploy_to_prod with a bogus request_id."""
     return iter([
-        Resp([tu("deploy_to_prod", service="myapp-api-prod",
+        Resp([tu("deploy_to_prod", service="paw-web-prod",
                  task_def_arn=ARN, request_id="req-123")]),
         Resp([txt("stopped")], stop="end_turn"),
     ])
@@ -125,9 +125,9 @@ def script_prod_no_approval():
 def script_prod_with_approval():
     return iter([
         Resp([tu("check_approval_status", request_id="req-123")]),
-        Resp([tu("deploy_to_prod", service="myapp-api-prod",
+        Resp([tu("deploy_to_prod", service="paw-web-prod",
                  task_def_arn=ARN, request_id="req-123")]),
-        Resp([tu("run_smoke_test", service="myapp-api-prod", env="prod")]),
+        Resp([tu("run_smoke_test", service="paw-web-prod", env="prod")]),
         Resp([txt("Prod deployed and green.")], stop="end_turn"),
     ])
 
@@ -181,7 +181,7 @@ def test_prod_blocked_on_arn_mismatch():
     CALLS.clear(); _STORE.clear()
     # Approval exists & approved, but for a DIFFERENT artifact.
     _STORE["req-123"] = {"request_id": "req-123", "status": "approved",
-                         "task_def_arn": "arn:.../myapp-api:99",
+                         "task_def_arn": "arn:.../paw-web:99",
                          "commit_sha": "deadbeef"}
     drive(script_prod_with_approval)
     agent_loop._save_thread = lambda *a, **k: None
