@@ -1,0 +1,55 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Run CD agent
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          AWS_ACCOUNT_ID: "882448083648"
+          AWS_REGION: us-east-1
+          PROD_DEPLOY_ROLE_ARN: arn:aws:iam::882448083648:role/cd-agent-deploy-prod
+          APPROVALS_TABLE: cd-agent-approvals
+          APPROVAL_TOKEN: ${{ secrets.APPROVAL_TOKEN }}
+          WORKSPACE: ${{ github.workspace }}
+        run: |
+          python - << 'EOF'
+          import json, os
+          from agent import loop
+
+          event = {
+              "sha": os.environ["GITHUB_SHA"],
+              "ref": os.environ["GITHUB_REF"],
+              "repo": os.environ["GITHUB_REPOSITORY"],
+              "pusher": os.environ.get("GITHUB_ACTOR", ""),
+              "message": "",
+              "run_id": os.environ["GITHUB_SHA"][:12],
+          }
+          result = loop.run_deploy(event)
+          print(json.dumps(result["transcript"], indent=2))
+          EOF

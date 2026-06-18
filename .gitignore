@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# Environment
+.env
+.env.*
+
+# Agent thread persistence
+/tmp/cd-agent-threads/
+
+# macOS
+.DS_Store
+
+# Claude Code local settings
+.claude/

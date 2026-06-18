@@ -127,9 +127,4 @@ def check_approval_status(request_id: str) -> dict:
 
 
 def _notify_approvers(request_id, service, task_def_arn, summary):
-    """Post to Slack (or GitHub deployment). Best-effort; see webhook/slack.py."""
-    try:
-        from webhook import slack
-        slack.post_approval_request(request_id, service, task_def_arn, summary)
-    except Exception:
-        pass  # don't fail the run if notification fails; status is still pending
+    pass  # notification not configured

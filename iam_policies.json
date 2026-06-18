@@ -47,8 +47,7 @@
           "ecr:BatchGetImage"
         ],
         "Resource": [
-          "arn:aws:ecr:REGION:ACCOUNT:repository/myapp-api",
-          "arn:aws:ecr:REGION:ACCOUNT:repository/myapp-worker"
+          "arn:aws:ecr:REGION:ACCOUNT:repository/paw-web"
         ]
       }
     ]
@@ -69,15 +68,14 @@
         "Effect": "Allow",
         "Action": ["ecs:UpdateService", "ecs:DescribeServices"],
         "Resource": [
-          "arn:aws:ecs:REGION:ACCOUNT:service/myapp-dev/myapp-api-dev",
-          "arn:aws:ecs:REGION:ACCOUNT:service/myapp-dev/myapp-worker-dev"
+          "arn:aws:ecs:REGION:ACCOUNT:service/paw-dev/paw-web-dev"
         ]
       },
       {
         "Sid": "PassExecRoleScoped",
         "Effect": "Allow",
         "Action": "iam:PassRole",
-        "Resource": "arn:aws:iam::ACCOUNT:role/myapp-task-execution",
+        "Resource": "arn:aws:iam::ACCOUNT:role/paw-task-execution",
         "Condition": {"StringEquals": {"iam:PassedToService": "ecs-tasks.amazonaws.com"}}
       }
     ]
@@ -92,15 +90,14 @@
         "Effect": "Allow",
         "Action": ["ecs:UpdateService", "ecs:DescribeServices", "ecs:ListTaskDefinitions"],
         "Resource": [
-          "arn:aws:ecs:REGION:ACCOUNT:service/myapp-prod/myapp-api-prod",
-          "arn:aws:ecs:REGION:ACCOUNT:service/myapp-prod/myapp-worker-prod"
+          "arn:aws:ecs:REGION:ACCOUNT:service/paw-prod/paw-web-prod"
         ]
       },
       {
         "Sid": "PassExecRoleScoped",
         "Effect": "Allow",
         "Action": "iam:PassRole",
-        "Resource": "arn:aws:iam::ACCOUNT:role/myapp-task-execution",
+        "Resource": "arn:aws:iam::ACCOUNT:role/paw-task-execution",
         "Condition": {"StringEquals": {"iam:PassedToService": "ecs-tasks.amazonaws.com"}}
       }
     ]
