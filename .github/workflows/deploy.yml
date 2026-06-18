@@ -3,6 +3,17 @@ name: Deploy
 on:
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      request_id:
+        description: "Approval request ID from the deploy run"
+        required: true
+      run_id:
+        description: "Run ID from the deploy run (first 12 chars of commit SHA)"
+        required: true
+      sha:
+        description: "Full commit SHA from the deploy run"
+        required: true
 
 jobs:
   deploy:
@@ -28,7 +39,8 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      - name: Run CD agent
+      - name: Run CD agent (on push)
+        if: github.event_name == 'push'
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           AWS_ACCOUNT_ID: "882448083648"
@@ -53,3 +65,47 @@ jobs:
           result = loop.run_deploy(event)
           print(json.dumps(result["transcript"], indent=2))
           EOF
+
+      - name: Approve and deploy to prod (manual trigger)
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          AWS_ACCOUNT_ID: "882448083648"
+          AWS_REGION: us-east-1
+          PROD_DEPLOY_ROLE_ARN: arn:aws:iam::882448083648:role/cd-agent-deploy-prod
+          APPROVALS_TABLE: cd-agent-approvals
+          APPROVAL_TOKEN: ${{ secrets.APPROVAL_TOKEN }}
+          WORKSPACE: ${{ github.workspace }}
+        run: |
+          python - << 'EOF'
+          import json, os, boto3, time
+          from agent import loop, config
+
+          request_id = os.environ["INPUT_REQUEST_ID"]
+          run_id     = os.environ["INPUT_RUN_ID"]
+          sha        = os.environ["INPUT_SHA"]
+
+          # Record the approval in DynamoDB
+          ddb = boto3.resource("dynamodb", region_name=config.AWS_REGION)
+          table = ddb.Table(config.APPROVALS_TABLE)
+          table.update_item(
+              Key={"request_id": request_id},
+              UpdateExpression="SET #s = :approved, decided_by = :who, decided_at = :t",
+              ConditionExpression="#s = :pending",
+              ExpressionAttributeNames={"#s": "status"},
+              ExpressionAttributeValues={
+                  ":approved": "approved",
+                  ":who": os.environ.get("GITHUB_ACTOR", "manual"),
+                  ":pending": "pending",
+                  ":t": int(time.time()),
+              },
+          )
+          print(f"Approved request {request_id}. Resuming prod deploy...")
+
+          result = loop.resume_after_approval(run_id, request_id, sha)
+          print(json.dumps(result["transcript"], indent=2))
+          EOF
+        env:
+          INPUT_REQUEST_ID: ${{ inputs.request_id }}
+          INPUT_RUN_ID: ${{ inputs.run_id }}
+          INPUT_SHA: ${{ inputs.sha }}
