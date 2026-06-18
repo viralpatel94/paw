@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pawtraits — AI Sketch Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Geist+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #f7f4ef;
+  --surface: #ffffff;
+  --surface2: #f0ece5;
+  --border: rgba(60,45,20,0.10);
+  --border-bright: rgba(60,45,20,0.20);
+  --text: #1c1710;
+  --muted: rgba(28,23,16,0.45);
+  --faint: rgba(28,23,16,0.18);
+  --accent: #7a5c2e;
+  --accent2: #c9a96e;
+  --glow: rgba(201,169,110,0.20);
+  --danger: #c0392b;
+  --r: 6px;
+}
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Geist Mono', monospace;
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  cursor: default;
+}
+
+/* ── BACKGROUND ── */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background:
+    radial-gradient(ellipse 60% 50% at 15% 15%, rgba(201,169,110,0.12) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 40% at 85% 85%, rgba(180,150,90,0.08) 0%, transparent 60%);
+  pointer-events: none; z-index: 0;
+}
+
+/* Subtle grid */
+body::after {
+  content: '';
+  position: fixed; inset: 0;
+  background-image:
+    linear-gradient(rgba(60,45,20,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(60,45,20,0.04) 1px, transparent 1px);
+  background-size: 60px 60px;
+  pointer-events: none; z-index: 0;
+}
+
+.page {
+  position: relative; z-index: 1;
+  min-height: 100vh;
+  display: flex; flex-direction: column;
+}
+
+/* ── HEADER ── */
+header {
+  padding: 0 2.5rem;
+  height: 64px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(20px);
+  position: sticky; top: 0; z-index: 50;
+  background: rgba(247,244,239,0.88);
+  animation: slideDown 0.6s ease both;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.logo {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.5rem;
+  font-weight: 300;
+  letter-spacing: 0.05em;
+  color: var(--text);
+  display: flex; align-items: center; gap: 0.6rem;
+}
+
+.logo-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent2);
+  box-shadow: 0 0 8px var(--accent2);
+  animation: pulse 3s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%,100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
+}
+
+.header-right {
+  display: flex; align-items: center; gap: 1.5rem;
+}
+
+.badge {
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+}
+
+/* ── HERO ── */
+.hero {
+  padding: 5rem 2.5rem 4rem;
+  text-align: center;
+  animation: fadeUp 0.8s ease 0.1s both;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.hero-eyebrow {
+  font-size: 0.62rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--accent2);
+  margin-bottom: 1.2rem;
+}
+
+.hero-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(3rem, 6vw, 5.5rem);
+  font-weight: 300;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  margin-bottom: 1.2rem;
+  /* Pencil-stroke shimmer on the italic word */
+}
+
+.hero-title em {
+  font-style: italic;
+  color: var(--accent);
+  position: relative;
+  display: inline-block;
+}
+
+.hero-title em::after {
+  content: '';
+  position: absolute;
+  bottom: 2px; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent2), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; opacity: 0; }
+  30%  { opacity: 1; }
+  70%  { opacity: 1; }
+  100% { background-position: 200% 0; opacity: 0; }
+}
+
+.hero-sub {
+  font-size: 0.78rem;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  line-height: 1.8;
+}
+
+/* ── MAIN WORKSPACE ── */
+.workspace {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5px;
+  max-width: 1300px;
+  margin: 0 auto 3rem;
+  width: calc(100% - 5rem);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  overflow: hidden;
+  animation: fadeUp 0.8s ease 0.25s both;
+  background: var(--border);
+  box-shadow: 0 0 0 1px var(--border), 0 20px 60px rgba(60,45,20,0.10);
+}
+
+/* ── PANEL ── */
+.panel {
+  background: var(--surface);
+  display: flex; flex-direction: column;
+}
+
+.panel-head {
+  height: 48px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 1.25rem;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.panel-label {
+  display: flex; align-items: center; gap: 0.6rem;
+}
+
+.panel-num {
+  font-size: 0.55rem;
+  letter-spacing: 0.2em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.panel-title {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  color: var(--text);
+  text-transform: uppercase;
+}
+
+.panel-sep { width: 1px; height: 12px; background: var(--border); }
+
+.panel-body {
+  flex: 1;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 1.5rem;
+  min-height: 460px;
+  position: relative;
+}
+
+/* ── UPLOAD ZONE ── */
+.upload-zone {
+  width: 100%; height: 100%; min-height: 380px;
+  border: 1px dashed var(--border-bright);
+  border-radius: 4px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 1.2rem;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  position: relative;
+  background: linear-gradient(135deg, var(--surface2) 0%, var(--surface) 100%);
+  box-shadow: inset 0 1px 3px rgba(60,45,20,0.04);
+}
+
+.upload-zone:hover, .upload-zone.over {
+  border-color: var(--accent2);
+  background: rgba(201,169,110,0.04);
+  box-shadow: inset 0 0 40px rgba(201,169,110,0.03);
+}
+
+.upload-zone input {
+  position: absolute; inset: 0; opacity: 0; cursor: pointer;
+}
+
+.upload-icon-wrap {
+  width: 56px; height: 56px;
+  border: 1px solid var(--border-bright);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--muted);
+  transition: all 0.25s ease;
+}
+
+.upload-zone:hover .upload-icon-wrap {
+  border-color: var(--accent2);
+  color: var(--accent);
+  box-shadow: 0 0 20px var(--glow);
+}
+
+.upload-zone:hover .upload-icon-wrap svg { transform: translateY(-2px); }
+.upload-icon-wrap svg { transition: transform 0.25s ease; }
+
+.upload-text {
+  text-align: center;
+}
+
+.upload-text p {
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  line-height: 2;
+}
+
+.upload-text span {
+  font-size: 0.6rem;
+  color: var(--faint);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* ── CROP CONTAINER ── */
+.crop-wrapper {
+  width: 100%;
+  display: flex; flex-direction: column;
+  align-items: center; gap: 1rem;
+}
+
+.crop-hint {
+  font-size: 0.58rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.crop-container {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+  user-select: none;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.crop-container img {
+  display: block;
+  max-width: 100%;
+  max-height: 360px;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.shade {
+  position: absolute;
+  background: rgba(0,0,0,0.65);
+  pointer-events: none; z-index: 1;
+  backdrop-filter: blur(1px);
+}
+
+.crop-border {
+  position: absolute;
+  border: 1px solid rgba(232,213,176,0.7);
+  pointer-events: none; z-index: 3;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(0,0,0,0.3);
+}
+
+.crop-corner {
+  position: absolute; width: 12px; height: 12px;
+  border-color: var(--accent); border-style: solid;
+  pointer-events: none; z-index: 4;
+}
+.crop-corner.tl { top: -1px; left: -1px; border-width: 2px 0 0 2px; }
+.crop-corner.tr { top: -1px; right: -1px; border-width: 2px 2px 0 0; }
+.crop-corner.bl { bottom: -1px; left: -1px; border-width: 0 0 2px 2px; }
+.crop-corner.br { bottom: -1px; right: -1px; border-width: 0 2px 2px 0; }
+
+/* Rule of thirds guide lines inside crop */
+.thirds-line {
+  position: absolute;
+  background: rgba(232,213,176,0.12);
+  pointer-events: none; z-index: 2;
+}
+
+.handle {
+  position: absolute; z-index: 5;
+  display: flex; align-items: center; justify-content: center;
+}
+.handle.h { left: 0; right: 0; height: 0; cursor: ns-resize; }
+.handle.v { top: 0; bottom: 0; width: 0; cursor: ew-resize; }
+
+.pill {
+  background: rgba(255,255,255,0.95);
+  border: 1px solid rgba(201,169,110,0.6);
+  border-radius: 999px;
+  box-shadow: 0 2px 10px rgba(60,45,20,0.15), 0 0 6px rgba(201,169,110,0.1);
+  display: flex; align-items: center; justify-content: center; gap: 3px;
+  pointer-events: all;
+  transition: all 0.15s ease;
+  backdrop-filter: blur(4px);
+}
+.pill:hover {
+  border-color: var(--accent2);
+  box-shadow: 0 2px 14px rgba(60,45,20,0.2), 0 0 14px rgba(201,169,110,0.2);
+}
+.handle.h .pill { width: 36px; height: 13px; flex-direction: row; }
+.handle.v .pill { width: 13px; height: 36px; flex-direction: column; }
+.dot { width: 3px; height: 3px; border-radius: 50%; background: var(--accent2); opacity: 0.7; }
+
+.crop-actions {
+  display: flex; align-items: center; justify-content: space-between;
+  width: 100%;
+}
+
+.crop-info {
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  font-family: 'Geist Mono', monospace;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  padding: 0.3rem 0.7rem;
+  font-family: 'Geist Mono', monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all 0.2s;
+}
+.btn-ghost:hover { color: var(--text); border-color: var(--border-bright); }
+
+/* ── SETTINGS BAR ── */
+.settings-bar {
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid var(--border);
+  display: flex; align-items: center; gap: 2rem;
+  background: var(--surface);
+}
+
+.setting {
+  display: flex; align-items: center; gap: 0.6rem;
+}
+
+.setting-label {
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.setting-input {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: 'Geist Mono', monospace;
+  font-size: 0.65rem;
+  padding: 0.3rem 0.5rem;
+  width: 64px;
+  border-radius: 3px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.setting-input:focus { border-color: var(--accent2); }
+
+/* ── OUTPUT PLACEHOLDER ── */
+.output-empty {
+  display: flex; flex-direction: column;
+  align-items: center; gap: 1.5rem;
+  opacity: 1;
+}
+
+.sketch-icon {
+  width: 100px; height: 100px;
+  opacity: 0.12;
+}
+
+.empty-label {
+  font-size: 0.62rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* ── PROGRESS ── */
+.progress-wrap {
+  display: flex; flex-direction: column;
+  align-items: center; gap: 1.5rem;
+}
+
+.progress-label {
+  font-size: 0.62rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.progress-track {
+  width: 180px; height: 1px;
+  background: var(--border);
+  position: relative; overflow: hidden;
+  border-radius: 999px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent2), var(--accent));
+  width: 0%;
+  transition: width 0.5s ease;
+  box-shadow: 0 0 8px var(--accent2);
+}
+
+/* ── SKETCH RESULT ── */
+.sketch-result {
+  width: 100%;
+  display: flex; flex-direction: column;
+  align-items: center; gap: 1.5rem;
+  animation: fadeUp 0.6s ease both;
+}
+
+.sketch-img {
+  max-width: 100%;
+  max-height: 360px;
+  object-fit: contain;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  box-shadow: 0 12px 40px rgba(60,45,20,0.15), 0 0 0 1px var(--border);
+}
+
+.result-actions {
+  display: flex; gap: 0.75rem;
+}
+
+.btn-download {
+  background: var(--accent2);
+  color: #0e0e0f;
+  border: none;
+  padding: 0.55rem 1.4rem;
+  font-family: 'Geist Mono', monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: 3px;
+  text-decoration: none;
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  transition: all 0.2s;
+  font-weight: 400;
+}
+.btn-download:hover {
+  background: var(--accent);
+  box-shadow: 0 0 20px rgba(201,169,110,0.3);
+}
+
+/* ── PROCESS BUTTON ── */
+.process-bar {
+  padding: 1.25rem 2.5rem;
+  display: flex; align-items: center; justify-content: center; gap: 2rem;
+  border-top: 1px solid var(--border);
+  background: rgba(247,244,239,0.92);
+  backdrop-filter: blur(20px);
+  animation: fadeUp 0.8s ease 0.4s both;
+}
+
+.btn-process {
+  position: relative;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border-bright);
+  padding: 0.85rem 3rem;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.05rem;
+  font-style: italic;
+  font-weight: 300;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  border-radius: 3px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.btn-process::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, var(--accent2), rgba(201,169,110,0.6));
+  transform: translateX(-100%) skewX(-5deg);
+  transition: transform 0.4s ease;
+}
+
+.btn-process:hover {
+  border-color: var(--accent2);
+  color: #fff;
+  box-shadow: 0 0 30px rgba(201,169,110,0.25);
+}
+.btn-process:hover::before { transform: translateX(0) skewX(0); }
+.btn-process span { position: relative; z-index: 1; }
+
+.btn-process:disabled {
+  opacity: 0.3; cursor: not-allowed;
+}
+.btn-process:disabled::before { display: none; }
+.btn-process:disabled:hover { color: var(--text); border-color: var(--border-bright); box-shadow: none; }
+
+.process-note {
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+/* ── FOOTER ── */
+footer {
+  padding: 1rem 2.5rem;
+  border-top: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  animation: fadeUp 0.8s ease 0.5s both;
+}
+
+.footer-note {
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
+  color: var(--faint);
+  text-transform: uppercase;
+}
+
+#workCanvas, #outputCanvas { display: none; }
+
+@media (max-width: 860px) {
+  .workspace { grid-template-columns: 1fr; width: calc(100% - 2rem); }
+  header { padding: 0 1.25rem; }
+  .process-bar { padding: 1rem 1.25rem; }
+  .hero { padding: 3rem 1.25rem 2.5rem; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HEADER -->
+  <header>
+    <div class="logo">
+      <div class="logo-dot"></div>
+      Pawtraits
+    </div>
+    <div class="header-right">
+      <span class="badge">Browser-only · No uploads</span>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <div class="hero">
+    <p class="hero-eyebrow">Dog Portrait Studio</p>
+    <h1 class="hero-title">Turn photos into<br><em>pencil sketches</em></h1>
+    <p class="hero-sub">Upload a photo · Frame the face · Download your sketch</p>
+  </div>
+
+  <!-- WORKSPACE -->
+  <div class="workspace">
+
+    <!-- LEFT: INPUT -->
+    <div class="panel">
+      <div class="panel-head">
+        <div class="panel-label">
+          <span class="panel-num">01</span>
+          <div class="panel-sep"></div>
+          <span class="panel-title">Upload &amp; Frame</span>
+        </div>
+      </div>
+
+      <div class="panel-body" id="inputBody">
+        <div class="upload-zone" id="uploadZone">
+          <input type="file" accept="image/jpeg,image/jpg,image/png" id="fileInput">
+          <div class="upload-icon-wrap">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+          </div>
+          <div class="upload-text">
+            <p>Drop a dog photo here<br>or click to browse</p>
+            <span>JPEG · JPG · PNG</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-bar">
+        <div class="setting">
+          <span class="setting-label">Contrast</span>
+          <input class="setting-input" type="number" id="contrast" value="1.5" min="1" max="3" step="0.1">
+        </div>
+        <div class="setting">
+          <span class="setting-label">Blur</span>
+          <input class="setting-input" type="number" id="blurRadius" value="21" min="5" max="51" step="2">
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: OUTPUT -->
+    <div class="panel">
+      <div class="panel-head">
+        <div class="panel-label">
+          <span class="panel-num">02</span>
+          <div class="panel-sep"></div>
+          <span class="panel-title">Sketch Output</span>
+        </div>
+      </div>
+
+      <div class="panel-body" id="outputBody">
+        <div class="output-empty" id="outputPlaceholder">
+          <svg class="sketch-icon" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="0.8">
+            <ellipse cx="50" cy="50" rx="42" ry="42"/>
+            <ellipse cx="50" cy="50" rx="28" ry="32"/>
+            <circle cx="38" cy="42" r="4.5"/>
+            <circle cx="62" cy="42" r="4.5"/>
+            <path d="M42 62 Q50 70 58 62"/>
+            <ellipse cx="50" cy="55" rx="6" ry="4"/>
+            <path d="M15 38 Q10 28 20 24"/>
+            <path d="M85 38 Q90 28 80 24"/>
+          </svg>
+          <span class="empty-label">Awaiting your photo</span>
+        </div>
+      </div>
+
+      <div class="settings-bar" style="justify-content:flex-end;">
+        <span class="footer-note" id="outputMeta"></span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- PROCESS BAR -->
+  <div class="process-bar">
+    <button class="btn-process" id="processBtn" disabled>
+      <span>Generate Sketch →</span>
+    </button>
+    <span class="process-note">Processed entirely in your browser</span>
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <span class="footer-note">Pawtraits © 2026</span>
+    <span class="footer-note">No data leaves your device</span>
+  </footer>
+
+</div>
+
+<canvas id="workCanvas"></canvas>
+<canvas id="outputCanvas"></canvas>
+
+<script>
+// ── STATE ──
+let originalImage = null;
+let crop = { top: 0.10, left: 0.10, bottom: 0.90, right: 0.90 };
+const MIN_SIZE = 0.08;
+
+// ── UPLOAD ──
+setupUploadZone();
+
+function setupUploadZone() {
+  const zone = document.getElementById('uploadZone');
+  const input = document.getElementById('fileInput');
+  if (!zone || !input) return;
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.classList.remove('over');
+    if (e.dataTransfer.files[0]) loadImage(e.dataTransfer.files[0]);
+  });
+  input.addEventListener('change', e => { if (e.target.files[0]) loadImage(e.target.files[0]); });
+}
+
+function loadImage(file) {
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const img = new Image();
+    img.onload = () => {
+      originalImage = img;
+      crop = { top: 0.10, left: 0.10, bottom: 0.90, right: 0.90 };
+      buildCropUI(ev.target.result);
+      document.getElementById('processBtn').disabled = false;
+      resetOutput();
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function resetOutput() {
+  document.getElementById('outputPlaceholder').style.display = 'flex';
+  const ex = document.getElementById('sketchResult'); if (ex) ex.remove();
+  document.getElementById('outputMeta').textContent = '';
+}
+
+// ── CROP UI ──
+function buildCropUI(src) {
+  document.getElementById('inputBody').innerHTML = `
+    <div class="crop-wrapper" id="cropWrapper">
+      <span class="crop-hint">Drag handles to frame the face</span>
+      <div class="crop-container" id="cropContainer">
+        <img id="cropImg" src="${src}" alt="Dog" draggable="false">
+        <div class="shade" id="shT"></div>
+        <div class="shade" id="shB"></div>
+        <div class="shade" id="shL"></div>
+        <div class="shade" id="shR"></div>
+        <div class="crop-border" id="cropBorder">
+          <div class="crop-corner tl"></div><div class="crop-corner tr"></div>
+          <div class="crop-corner bl"></div><div class="crop-corner br"></div>
+          <!-- Rule of thirds -->
+          <div class="thirds-line" style="position:absolute;left:33.33%;top:0;width:1px;height:100%;"></div>
+          <div class="thirds-line" style="position:absolute;left:66.66%;top:0;width:1px;height:100%;"></div>
+          <div class="thirds-line" style="position:absolute;top:33.33%;left:0;width:100%;height:1px;"></div>
+          <div class="thirds-line" style="position:absolute;top:66.66%;left:0;width:100%;height:1px;"></div>
+        </div>
+        <div class="handle h" id="hTop" data-edge="top"><div class="pill"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>
+        <div class="handle h" id="hBot" data-edge="bottom"><div class="pill"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>
+        <div class="handle v" id="hLeft" data-edge="left"><div class="pill"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>
+        <div class="handle v" id="hRight" data-edge="right"><div class="pill"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>
+      </div>
+      <div class="crop-actions">
+        <span class="crop-info" id="cropInfo"></span>
+        <button class="btn-ghost" id="changeBtn">↺ Change photo</button>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('changeBtn').addEventListener('click', resetUpload);
+
+  const imgEl = document.getElementById('cropImg');
+  const doUpdate = () => { updateOverlay(imgEl); updateCropInfo(imgEl); };
+  imgEl.addEventListener('load', doUpdate);
+  if (imgEl.complete) doUpdate();
+  window.addEventListener('resize', doUpdate);
+
+  ['hTop','hBot','hLeft','hRight'].forEach(id => {
+    makeDraggable(document.getElementById(id), document.getElementById(id).dataset.edge, imgEl);
+  });
+}
+
+function getImgRect(imgEl) {
+  const container = document.getElementById('cropContainer');
+  const ir = imgEl.getBoundingClientRect();
+  const cr = container.getBoundingClientRect();
+  return { x: ir.left - cr.left, y: ir.top - cr.top, w: ir.width, h: ir.height };
+}
+
+function updateOverlay(imgEl) {
+  const r = getImgRect(imgEl);
+  if (!r || r.w === 0) return;
+  const T = r.y + crop.top * r.h, B = r.y + crop.bottom * r.h;
+  const L = r.x + crop.left * r.w, R = r.x + crop.right * r.w;
+  const container = document.getElementById('cropContainer');
+  const cw = container.offsetWidth, ch = container.offsetHeight;
+
+  setEl('shT', `top:0;left:0;width:${cw}px;height:${T}px;`);
+  setEl('shB', `top:${B}px;left:0;width:${cw}px;height:${ch-B}px;`);
+  setEl('shL', `top:${T}px;left:0;width:${L}px;height:${B-T}px;`);
+  setEl('shR', `top:${T}px;left:${R}px;width:${cw-R}px;height:${B-T}px;`);
+
+  const brd = document.getElementById('cropBorder');
+  brd.style.cssText = `top:${T}px;left:${L}px;width:${R-L}px;height:${B-T}px;`;
+
+  setEl('hTop',  `top:${T}px;left:${L}px;right:${cw-R}px;height:0;transform:translateY(-50%);`);
+  setEl('hBot',  `top:${B}px;left:${L}px;right:${cw-R}px;height:0;transform:translateY(-50%);`);
+  setEl('hLeft', `left:${L}px;top:${T}px;bottom:${ch-B}px;width:0;transform:translateX(-50%);`);
+  setEl('hRight',`left:${R}px;top:${T}px;bottom:${ch-B}px;width:0;transform:translateX(-50%);`);
+}
+
+function updateCropInfo(imgEl) {
+  const r = getImgRect(imgEl);
+  if (!r) return;
+  const pw = Math.round((crop.right - crop.left) * 100);
+  const ph = Math.round((crop.bottom - crop.top) * 100);
+  const el = document.getElementById('cropInfo');
+  if (el) el.textContent = `${pw}% × ${ph}%`;
+}
+
+function setEl(id, css) {
+  const el = document.getElementById(id); if (el) el.style.cssText = css;
+}
+
+function makeDraggable(el, edge, imgEl) {
+  let startPx = 0, startFrac = 0;
+  const isH = edge === 'top' || edge === 'bottom';
+  const onStart = e => {
+    e.preventDefault(); e.stopPropagation();
+    const pt = e.touches ? e.touches[0] : e;
+    startPx = isH ? pt.clientY : pt.clientX;
+    startFrac = crop[edge];
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onEnd);
+    document.addEventListener('touchmove', onMove, { passive: false });
+    document.addEventListener('touchend', onEnd);
+  };
+  const onMove = e => {
+    e.preventDefault();
+    const pt = e.touches ? e.touches[0] : e;
+    const now = isH ? pt.clientY : pt.clientX;
+    const r = getImgRect(imgEl);
+    const dim = isH ? r.h : r.w;
+    let nf = startFrac + (now - startPx) / dim;
+    if (edge === 'top')    nf = Math.max(0, Math.min(crop.bottom - MIN_SIZE, nf));
+    if (edge === 'bottom') nf = Math.min(1, Math.max(crop.top + MIN_SIZE, nf));
+    if (edge === 'left')   nf = Math.max(0, Math.min(crop.right - MIN_SIZE, nf));
+    if (edge === 'right')  nf = Math.min(1, Math.max(crop.left + MIN_SIZE, nf));
+    crop[edge] = nf;
+    updateOverlay(imgEl); updateCropInfo(imgEl);
+  };
+  const onEnd = () => {
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onEnd);
+    document.removeEventListener('touchmove', onMove);
+    document.removeEventListener('touchend', onEnd);
+  };
+  el.addEventListener('mousedown', onStart);
+  el.addEventListener('touchstart', onStart, { passive: false });
+}
+
+function resetUpload() {
+  originalImage = null;
+  crop = { top: 0.10, left: 0.10, bottom: 0.90, right: 0.90 };
+  document.getElementById('processBtn').disabled = true;
+  resetOutput();
+  document.getElementById('inputBody').innerHTML = `
+    <div class="upload-zone" id="uploadZone">
+      <input type="file" accept="image/jpeg,image/jpg,image/png" id="fileInput">
+      <div class="upload-icon-wrap">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/>
+          <line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+      </div>
+      <div class="upload-text">
+        <p>Drop a dog photo here<br>or click to browse</p>
+        <span>JPEG · JPG · PNG</span>
+      </div>
+    </div>
+  `;
+  setupUploadZone();
+}
+
+// ── PROCESS ──
+document.getElementById('processBtn').addEventListener('click', () => {
+  if (!originalImage) return;
+  document.getElementById('processBtn').disabled = true;
+  const ob = document.getElementById('outputBody');
+  document.getElementById('outputPlaceholder').style.display = 'none';
+  const ex = document.getElementById('sketchResult'); if (ex) ex.remove();
+
+  const prog = document.createElement('div');
+  prog.id = 'prog'; prog.className = 'progress-wrap';
+  prog.innerHTML = `<span class="progress-label">Rendering sketch…</span>
+    <div class="progress-track"><div class="progress-fill" id="pBar"></div></div>`;
+  ob.appendChild(prog);
+  setTimeout(() => { const b = document.getElementById('pBar'); if(b) b.style.width = '75%'; }, 80);
+
+  setTimeout(() => {
+    try {
+      const t0 = performance.now();
+      const result = generateSketch();
+      const ms = Math.round(performance.now() - t0);
+      showResult(result, ms);
+    } catch(e) {
+      console.error(e); alert('Processing failed. Try another photo.');
+    }
+    document.getElementById('processBtn').disabled = false;
+  }, 60);
+});
+
+function generateSketch() {
+  const img = originalImage;
+  const MAX = 1400;
+  let sw = img.naturalWidth, sh = img.naturalHeight;
+  if (sw > MAX || sh > MAX) { const sc = Math.min(MAX/sw, MAX/sh); sw=Math.round(sw*sc); sh=Math.round(sh*sc); }
+
+  const wc = document.getElementById('workCanvas');
+  wc.width = sw; wc.height = sh;
+  wc.getContext('2d').drawImage(img, 0, 0, sw, sh);
+
+  const cx0=Math.round(crop.left*sw), cy0=Math.round(crop.top*sh);
+  const cw=Math.round((crop.right-crop.left)*sw), ch=Math.round((crop.bottom-crop.top)*sh);
+
+  const fc = document.createElement('canvas');
+  fc.width = cw; fc.height = ch;
+  fc.getContext('2d').drawImage(wc, cx0, cy0, cw, ch, 0, 0, cw, ch);
+
+  const id = fc.getContext('2d').getImageData(0, 0, cw, ch).data;
+  const gray = new Float32Array(cw*ch);
+  for (let i=0;i<cw*ch;i++) gray[i]=0.299*id[i*4]+0.587*id[i*4+1]+0.114*id[i*4+2];
+
+  const br = parseInt(document.getElementById('blurRadius').value);
+  const inv = new Float32Array(cw*ch);
+  for (let i=0;i<cw*ch;i++) inv[i]=255-gray[i];
+  const blurred = gaussianBlur(inv, cw, ch, br);
+
+  const sketch = new Float32Array(cw*ch);
+  for (let i=0;i<cw*ch;i++) { const ib=255-blurred[i]; sketch[i]=ib<1?255:Math.min(255,(gray[i]/ib)*256); }
+
+  const gamma = parseFloat(document.getElementById('contrast').value);
+  const boosted = new Float32Array(cw*ch);
+  for (let i=0;i<cw*ch;i++) boosted[i]=Math.pow(sketch[i]/255,gamma)*255;
+
+  const ecx=cw*0.5, ecy=ch*0.5, erx=cw*0.46, ery=ch*0.48, ff=0.10;
+  const masked = new Float32Array(cw*ch);
+  for (let y=0;y<ch;y++) for (let x=0;x<cw;x++) {
+    const i=y*cw+x, dx=(x-ecx)/erx, dy=(y-ecy)/ery, d=Math.sqrt(dx*dx+dy*dy);
+    const a = d<=1-ff ? 1 : d<=1+ff*0.5 ? Math.max(0,1-(d-(1-ff))/(ff*1.5)) : 0;
+    masked[i]=boosted[i]*a+255*(1-a);
+  }
+
+  const oc = document.getElementById('outputCanvas');
+  oc.width = cw; oc.height = ch;
+  const octx = oc.getContext('2d');
+  const od = octx.createImageData(cw, ch);
+  for (let i=0;i<cw*ch;i++) { const v=Math.round(masked[i]); od.data[i*4]=od.data[i*4+1]=od.data[i*4+2]=v; od.data[i*4+3]=255; }
+  octx.putImageData(od, 0, 0);
+  return oc.toDataURL('image/jpeg', 0.95);
+}
+
+function gaussianBlur(src,w,h,r) {
+  r=Math.max(1,Math.floor(r/2));
+  let t=bH(src,w,h,r);t=bV(t,w,h,r);t=bH(t,w,h,r);t=bV(t,w,h,r);t=bH(t,w,h,r);return bV(t,w,h,r);
+}
+function bH(s,w,h,r){const d=new Float32Array(w*h),inv=1/(2*r+1);for(let y=0;y<h;y++){let sum=0,row=y*w;for(let x=-r;x<=r;x++)sum+=s[row+Math.max(0,Math.min(w-1,x))];for(let x=0;x<w;x++){d[row+x]=sum*inv;sum+=s[row+Math.min(w-1,x+r+1)]-s[row+Math.max(0,x-r)];}}return d;}
+function bV(s,w,h,r){const d=new Float32Array(w*h),inv=1/(2*r+1);for(let x=0;x<w;x++){let sum=0;for(let y=-r;y<=r;y++)sum+=s[Math.max(0,Math.min(h-1,y))*w+x];for(let y=0;y<h;y++){d[y*w+x]=sum*inv;sum+=s[Math.min(h-1,y+r+1)*w+x]-s[Math.max(0,y-r)*w+x];}}return d;}
+
+function showResult(dataUrl, ms) {
+  const ob = document.getElementById('outputBody');
+  const prog = document.getElementById('prog'); if(prog) prog.remove();
+  const res = document.createElement('div');
+  res.id = 'sketchResult'; res.className = 'sketch-result';
+  res.innerHTML = `
+    <img class="sketch-img" src="${dataUrl}" alt="Sketch">
+    <div class="result-actions">
+      <a class="btn-download" href="${dataUrl}" download="pawtrait.jpg">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Download
+      </a>
+    </div>
+  `;
+  ob.appendChild(res);
+  document.getElementById('outputMeta').textContent = `Rendered in ${ms}ms`;
+}
+</script>
+</body>
+</html>
