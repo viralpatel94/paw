@@ -57,11 +57,8 @@ jobs:
           result = loop.run_deploy(event)
           print(json.dumps(result["transcript"], indent=2))
 
-          # Extract request_id from the saved thread for the next job
-          import re
-          transcript = " ".join(result["transcript"])
-          match = re.search(r"request_id[`'\s=:]+([0-9a-f-]{36})", transcript)
-          request_id = match.group(1) if match else ""
+          request_id = result.get("request_id", "")
+          print(f"request_id={request_id}")
 
           with open(os.environ["GITHUB_OUTPUT"], "a") as f:
               f.write(f"request_id={request_id}\n")
@@ -113,6 +110,10 @@ jobs:
           request_id = os.environ["REQUEST_ID"]
           run_id     = os.environ["RUN_ID"]
           sha        = os.environ["SHA"]
+
+          if not request_id:
+              print("ERROR: no request_id from deploy-dev — dev deploy may have failed or skipped approval.")
+              raise SystemExit(1)
 
           # Record approval in DynamoDB
           ddb = boto3.resource("dynamodb", region_name=config.AWS_REGION)

@@ -112,7 +112,12 @@ def run_deploy(event: dict) -> dict:
 
     # Persist messages so resume_after_approval can continue the same thread.
     _save_thread(ctx["run_id"], messages)
-    return {"run_id": ctx["run_id"], "transcript": transcript}
+
+    # Extract request_id from tool results in the message history so callers
+    # don't have to parse the transcript.
+    request_id = _find_request_id(messages)
+    return {"run_id": ctx["run_id"], "transcript": transcript,
+            "request_id": request_id}
 
 
 def resume_after_approval(run_id: str, request_id: str, sha: str) -> dict:
@@ -153,6 +158,23 @@ def _save_thread(run_id, messages):
 def _load_thread(run_id):
     with open(_thread_path(run_id)) as f:
         return json.load(f)
+
+
+def _find_request_id(messages) -> str:
+    """Scan tool results for a request_id returned by request_prod_approval."""
+    import re
+    for m in messages:
+        content = m.get("content", "")
+        if isinstance(content, list):
+            for block in content:
+                text = ""
+                if isinstance(block, dict):
+                    text = block.get("content", "")
+                if isinstance(text, str):
+                    match = re.search(r'"request_id"\s*:\s*"([0-9a-f-]{36})"', text)
+                    if match:
+                        return match.group(1)
+    return ""
 
 
 def _to_serializable(messages):
