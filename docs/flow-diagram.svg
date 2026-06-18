@@ -1,0 +1,166 @@
+<svg viewBox="0 0 740 820" xmlns="http://www.w3.org/2000/svg" font-family="system-ui, -apple-system, sans-serif">
+  <title>Paw CD Agent — Flow Diagram</title>
+  <desc>Flow diagram showing how the Claude-powered CD agent deploys code from git push to ECS dev.</desc>
+
+  <!-- Background -->
+  <rect width="740" height="820" fill="#0d1117" rx="12"/>
+
+  <!-- Title -->
+  <text x="370" y="38" text-anchor="middle" font-size="15" font-weight="700" fill="#e6edf3">Paw CD Agent — Deployment Flow</text>
+
+  <!-- LANE LABELS -->
+  <rect x="16" y="55" width="160" height="750" rx="8" fill="#161b22" opacity="0.7"/>
+  <text x="96" y="78" text-anchor="middle" font-size="10" font-weight="600" fill="#8b949e" letter-spacing="0.5">GITHUB ACTIONS</text>
+
+  <rect x="188" y="55" width="190" height="750" rx="8" fill="#161b22" opacity="0.7"/>
+  <text x="283" y="78" text-anchor="middle" font-size="10" font-weight="600" fill="#8b949e" letter-spacing="0.5">CLAUDE AGENT</text>
+
+  <rect x="390" y="55" width="334" height="750" rx="8" fill="#161b22" opacity="0.7"/>
+  <text x="557" y="78" text-anchor="middle" font-size="10" font-weight="600" fill="#8b949e" letter-spacing="0.5">AWS</text>
+
+  <!-- 1. git push -->
+  <rect x="28" y="95" width="136" height="40" rx="6" fill="#238636"/>
+  <text x="96" y="110" text-anchor="middle" font-size="11" font-weight="600" fill="#fff">git push main</text>
+  <text x="96" y="126" text-anchor="middle" font-size="9" fill="#b7f0c2">triggers workflow</text>
+
+  <line x1="96" y1="135" x2="96" y2="158" stroke="#8b949e" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- 2. GitHub Actions -->
+  <rect x="28" y="158" width="136" height="40" rx="6" fill="#1f6feb"/>
+  <text x="96" y="173" text-anchor="middle" font-size="11" font-weight="600" fill="#fff">Actions runner</text>
+  <text x="96" y="189" text-anchor="middle" font-size="9" fill="#cae8ff">starts deploy job</text>
+
+  <line x1="164" y1="178" x2="198" y2="178" stroke="#8b949e" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Agent loop label -->
+  <rect x="200" y="95" width="166" height="24" rx="5" fill="none" stroke="#f0883e" stroke-width="1" stroke-dasharray="4 3"/>
+  <text x="283" y="111" text-anchor="middle" font-size="9" fill="#f0883e" font-weight="600">reason → act → observe loop</text>
+
+  <!-- 3a. get_commit_diff -->
+  <rect x="200" y="158" width="166" height="40" rx="6" fill="#21262d" stroke="#f0883e" stroke-width="1.2"/>
+  <text x="283" y="173" text-anchor="middle" font-size="11" font-weight="600" fill="#e6edf3">get_commit_diff</text>
+  <text x="283" y="189" text-anchor="middle" font-size="9" fill="#8b949e">read what changed</text>
+
+  <line x1="283" y1="198" x2="283" y2="220" stroke="#8b949e" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- 3b. build_and_push_image -->
+  <rect x="200" y="220" width="166" height="40" rx="6" fill="#21262d" stroke="#f0883e" stroke-width="1.2"/>
+  <text x="283" y="235" text-anchor="middle" font-size="11" font-weight="600" fill="#e6edf3">build_and_push_image</text>
+  <text x="283" y="251" text-anchor="middle" font-size="9" fill="#8b949e">docker build → ECR</text>
+
+  <line x1="366" y1="240" x2="402" y2="240" stroke="#8b949e" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- AWS: ECR -->
+  <rect x="402" y="220" width="130" height="40" rx="6" fill="#0d419d"/>
+  <text x="467" y="235" text-anchor="middle" font-size="11" font-weight="600" fill="#fff">ECR</text>
+  <text x="467" y="251" text-anchor="middle" font-size="9" fill="#cae8ff">image@sha256:…</text>
+
+  <!-- Validator -->
+  <rect x="390" y="158" width="130" height="40" rx="6" fill="#21262d" stroke="#d29922" stroke-width="1.2"/>
+  <text x="455" y="173" text-anchor="middle" font-size="11" font-weight="600" fill="#e3b341">validator.py</text>
+  <text x="455" y="189" text-anchor="middle" font-size="9" fill="#8b949e">allowlist check</text>
+
+  <line x1="366" y1="178" x2="390" y2="178" stroke="#d29922" stroke-width="1.5" stroke-dasharray="4 2" marker-end="url(#arrY)"/>
+  <line x1="390" y1="192" x2="366" y2="192" stroke="#d29922" stroke-width="1.5" stroke-dasharray="4 2" marker-end="url(#arrY)"/>
+  <text x="378" y="208" text-anchor="middle" font-size="8" fill="#d29922">every tool call</text>
+
+  <line x1="283" y1="260" x2="283" y2="282" stroke="#8b949e" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- 3c. register_task_definition -->
+  <rect x="200" y="282" width="166" height="40" rx="6" fill="#21262d" stroke="#f0883e" stroke-width="1.2"/>
+  <text x="283" y="297" text-anchor="middle" font-size="11" font-weight="600" fill="#e6edf3">register_task_definition</text>
+  <text x="283" y="313" text-anchor="middle" font-size="9" fill="#8b949e">pin image by digest</text>
+
+  <line x1="366" y1="302" x2="402" y2="302" stroke="#8b949e" stroke-width="1.5" marker-end="url(#arr)"/>
+  <rect x="402" y="282" width="130" height="40" rx="6" fill="#0d419d"/>
+  <text x="467" y="297" text-anchor="middle" font-size="11" font-weight="600" fill="#fff">ECS Task Def</text>
+  <text x="467" y="313" text-anchor="middle" font-size="9" fill="#cae8ff">paw-web:N</text>
+
+  <line x1="283" y1="322" x2="283" y2="344" stroke="#8b949e" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- 3d. deploy_to_dev -->
+  <rect x="200" y="344" width="166" height="40" rx="6" fill="#21262d" stroke="#f0883e" stroke-width="1.2"/>
+  <text x="283" y="359" text-anchor="middle" font-size="11" font-weight="600" fill="#e6edf3">deploy_to_dev</text>
+  <text x="283" y="375" text-anchor="middle" font-size="9" fill="#8b949e">update service, wait stable</text>
+
+  <line x1="366" y1="364" x2="402" y2="364" stroke="#8b949e" stroke-width="1.5" marker-end="url(#arr)"/>
+  <rect x="402" y="344" width="130" height="40" rx="6" fill="#0d419d"/>
+  <text x="467" y="359" text-anchor="middle" font-size="11" font-weight="600" fill="#fff">ECS Service</text>
+  <text x="467" y="375" text-anchor="middle" font-size="9" fill="#cae8ff">paw-web-dev</text>
+
+  <line x1="283" y1="384" x2="283" y2="406" stroke="#8b949e" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- 3e. run_smoke_test -->
+  <rect x="200" y="406" width="166" height="40" rx="6" fill="#21262d" stroke="#f0883e" stroke-width="1.2"/>
+  <text x="283" y="421" text-anchor="middle" font-size="11" font-weight="600" fill="#e6edf3">run_smoke_test</text>
+  <text x="283" y="437" text-anchor="middle" font-size="9" fill="#8b949e">HTTP health check</text>
+
+  <line x1="283" y1="446" x2="283" y2="468" stroke="#8b949e" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Decision diamond -->
+  <polygon points="283,468 330,494 283,520 236,494" fill="#21262d" stroke="#8b949e" stroke-width="1.2"/>
+  <text x="283" y="490" text-anchor="middle" font-size="9" fill="#e6edf3" font-weight="600">pass?</text>
+
+  <line x1="283" y1="520" x2="283" y2="548" stroke="#3fb950" stroke-width="1.5" marker-end="url(#arrG)"/>
+  <text x="295" y="537" font-size="9" fill="#3fb950">yes</text>
+
+  <!-- Success -->
+  <rect x="200" y="548" width="166" height="40" rx="6" fill="#0f5132" stroke="#3fb950" stroke-width="1.2"/>
+  <text x="283" y="563" text-anchor="middle" font-size="11" font-weight="600" fill="#3fb950">✓ Deploy complete</text>
+  <text x="283" y="579" text-anchor="middle" font-size="9" fill="#8b949e">log summary, exit</text>
+
+  <!-- Fail path -->
+  <line x1="330" y1="494" x2="556" y2="494" stroke="#f85149" stroke-width="1.5" marker-end="url(#arrR)"/>
+  <text x="430" y="488" font-size="9" fill="#f85149">no</text>
+
+  <rect x="546" y="474" width="130" height="40" rx="6" fill="#3d0000" stroke="#f85149" stroke-width="1.2"/>
+  <text x="611" y="489" text-anchor="middle" font-size="11" font-weight="600" fill="#f85149">rollback</text>
+  <text x="611" y="505" text-anchor="middle" font-size="9" fill="#8b949e">restore previous rev</text>
+
+  <line x1="546" y1="494" x2="390" y2="494" stroke="#f85149" stroke-width="1" stroke-dasharray="3 2"/>
+  <line x1="390" y1="494" x2="390" y2="426" stroke="#f85149" stroke-width="1" stroke-dasharray="3 2"/>
+  <line x1="390" y1="426" x2="366" y2="426" stroke="#f85149" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#arrR)"/>
+
+  <!-- Fargate task -->
+  <rect x="546" y="344" width="170" height="100" rx="6" fill="#0d1f4e" stroke="#1f6feb" stroke-width="1"/>
+  <text x="631" y="362" text-anchor="middle" font-size="10" font-weight="600" fill="#79c0ff">Fargate Task</text>
+  <rect x="562" y="370" width="138" height="28" rx="4" fill="#1f6feb" opacity="0.3"/>
+  <text x="631" y="389" text-anchor="middle" font-size="10" fill="#cae8ff">nginx:alpine</text>
+  <text x="631" y="408" text-anchor="middle" font-size="9" fill="#8b949e">serves index.html</text>
+  <text x="631" y="424" text-anchor="middle" font-size="9" fill="#8b949e">port 80 → public IP</text>
+
+  <line x1="532" y1="364" x2="546" y2="370" stroke="#1f6feb" stroke-width="1.2" stroke-dasharray="3 2" marker-end="url(#arrB)"/>
+
+  <!-- Legend -->
+  <rect x="28" y="620" width="684" height="72" rx="6" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+  <text x="44" y="638" font-size="9" font-weight="600" fill="#8b949e">LEGEND</text>
+  <rect x="44" y="646" width="10" height="10" rx="2" fill="none" stroke="#f0883e" stroke-width="1.2"/>
+  <text x="60" y="656" font-size="9" fill="#e6edf3">Claude tool call</text>
+  <rect x="150" y="646" width="10" height="10" rx="2" fill="#0d419d"/>
+  <text x="166" y="656" font-size="9" fill="#e6edf3">AWS resource</text>
+  <rect x="260" y="646" width="10" height="10" rx="2" fill="none" stroke="#d29922" stroke-width="1.2"/>
+  <text x="276" y="656" font-size="9" fill="#e6edf3">validator intercept</text>
+  <line x1="400" y1="651" x2="420" y2="651" stroke="#3fb950" stroke-width="1.5"/>
+  <text x="426" y="656" font-size="9" fill="#e6edf3">success path</text>
+  <line x1="510" y1="651" x2="530" y2="651" stroke="#f85149" stroke-width="1.5"/>
+  <text x="536" y="656" font-size="9" fill="#e6edf3">failure / rollback</text>
+  <text x="44" y="676" font-size="9" fill="#8b949e">Every orange box is a tool Claude proposes. The validator checks allowlists before any AWS call executes.</text>
+
+  <defs>
+    <marker id="arr" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#8b949e"/>
+    </marker>
+    <marker id="arrG" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#3fb950"/>
+    </marker>
+    <marker id="arrR" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#f85149"/>
+    </marker>
+    <marker id="arrY" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#d29922"/>
+    </marker>
+    <marker id="arrB" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#1f6feb"/>
+    </marker>
+  </defs>
+</svg>
