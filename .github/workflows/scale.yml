@@ -1,0 +1,42 @@
+name: Scale ECS Services
+
+on:
+  schedule:
+    - cron: '0 23 * * *'  # spin down at 11pm UTC
+    - cron: '0 13 * * *'  # spin up at 1pm UTC (9am ET)
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Scale up or down"
+        required: true
+        type: choice
+        options: [up, down]
+
+jobs:
+  scale:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Scale services
+        run: |
+          # Determine count based on schedule or manual input
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            ACTION="${{ inputs.action }}"
+          elif [ "$(date -u +%H)" = "23" ]; then
+            ACTION="down"
+          else
+            ACTION="up"
+          fi
+
+          COUNT=$([[ "$ACTION" == "up" ]] && echo 1 || echo 0)
+          echo "Scaling to $COUNT tasks..."
+
+          aws ecs update-service --cluster paw-dev  --service paw-web-dev  --desired-count $COUNT
+          aws ecs update-service --cluster paw-prod --service paw-web-prod --desired-count $COUNT
+          echo "Done — both services scaled $ACTION"
