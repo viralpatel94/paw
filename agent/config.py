@@ -20,7 +20,6 @@ SMOKE_ENDPOINTS = {
     ("paw-web-dev", "dev"): os.environ.get("DEV_SMOKE_URL", ""),
 }
 
-APPROVALS_TABLE = os.environ.get("APPROVALS_TABLE", "cd-agent-approvals")
 
 WORKSPACE = os.environ.get("WORKSPACE", "/workspace/repo")
 
