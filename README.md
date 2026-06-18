@@ -122,6 +122,28 @@ requirements.txt
 | DynamoDB table | `cd-agent-approvals` |
 | IAM roles | `cd-agent-base`, `cd-agent-build`, `cd-agent-deploy-dev`, `cd-agent-deploy-prod`, `cd-agent-webhook` |
 
+## Accessing the app
+
+The dev service runs on Fargate with a public IP assigned per task. Since there's no load balancer, the IP changes on every deploy.
+
+Get the current IP:
+
+```bash
+TASK=$(aws ecs list-tasks --cluster paw-dev --desired-status RUNNING --query 'taskArns[0]' --output text)
+ENI=$(aws ecs describe-tasks --cluster paw-dev --tasks $TASK \
+  --query 'tasks[0].attachments[0].details[?name==`networkInterfaceId`].value' --output text)
+aws ec2 describe-network-interfaces --network-interface-ids $ENI \
+  --query 'NetworkInterfaces[0].Association.PublicIp' --output text
+```
+
+Then open `http://<ip>` in your browser. Port 80 is restricted to a specific IP in the default security group — update the inbound rule if your IP changes:
+
+```bash
+aws ec2 authorize-security-group-ingress \
+  --group-id sg-0901bb74 \
+  --protocol tcp --port 80 --cidr <your-ip>/32
+```
+
 ## Setup
 
 ### GitHub secrets
