@@ -10,10 +10,6 @@ jobs:
     permissions:
       id-token: write
       contents: read
-    outputs:
-      request_id: ${{ steps.agent.outputs.request_id }}
-      run_id: ${{ steps.agent.outputs.run_id }}
-      sha: ${{ steps.agent.outputs.sha }}
 
     steps:
       - uses: actions/checkout@v4
@@ -32,18 +28,16 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      - name: Run CD agent (build + dev deploy + request approval)
-        id: agent
+      - name: Run CD agent
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           AWS_ACCOUNT_ID: "882448083648"
           AWS_REGION: us-east-1
-          PROD_DEPLOY_ROLE_ARN: arn:aws:iam::882448083648:role/cd-agent-deploy-prod
           APPROVALS_TABLE: cd-agent-approvals
           WORKSPACE: ${{ github.workspace }}
         run: |
           python - << 'EOF'
-          import json, os, sys
+          import json, os
           from agent import loop
 
           event = {
@@ -55,91 +49,5 @@ jobs:
               "run_id": os.environ["GITHUB_SHA"][:12],
           }
           result = loop.run_deploy(event)
-          print(json.dumps(result["transcript"], indent=2))
-
-          request_id = result.get("request_id", "")
-          print(f"request_id={request_id}")
-
-          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
-              f.write(f"request_id={request_id}\n")
-              f.write(f"run_id={event['run_id']}\n")
-              f.write(f"sha={event['sha']}\n")
-          EOF
-
-  deploy-prod:
-    needs: deploy-dev
-    runs-on: ubuntu-latest
-    environment: production  # ← pauses here for your approval in GitHub UI
-    permissions:
-      id-token: write
-      contents: read
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
-
-      - name: Approve and deploy to prod
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          AWS_ACCOUNT_ID: "882448083648"
-          AWS_REGION: us-east-1
-          PROD_DEPLOY_ROLE_ARN: arn:aws:iam::882448083648:role/cd-agent-deploy-prod
-          APPROVALS_TABLE: cd-agent-approvals
-          WORKSPACE: ${{ github.workspace }}
-          REQUEST_ID: ${{ needs.deploy-dev.outputs.request_id }}
-          RUN_ID: ${{ needs.deploy-dev.outputs.run_id }}
-          SHA: ${{ needs.deploy-dev.outputs.sha }}
-        run: |
-          python - << 'EOF'
-          import json, os, sys, time, boto3
-          from agent import loop, config
-
-          request_id = os.environ["REQUEST_ID"]
-          run_id     = os.environ["RUN_ID"]
-          sha        = os.environ["SHA"]
-
-          if not request_id:
-              print("ERROR: no request_id from deploy-dev — dev deploy may have failed or skipped approval.")
-              raise SystemExit(1)
-
-          # Record approval in DynamoDB
-          ddb = boto3.resource("dynamodb", region_name=config.AWS_REGION)
-          table = ddb.Table(config.APPROVALS_TABLE)
-          table.update_item(
-              Key={"request_id": request_id},
-              UpdateExpression="SET #s = :approved, decided_by = :who, decided_at = :t",
-              ConditionExpression="#s = :pending",
-              ExpressionAttributeNames={"#s": "status"},
-              ExpressionAttributeValues={
-                  ":approved": "approved",
-                  ":who": os.environ.get("GITHUB_ACTOR", "manual"),
-                  ":pending": "pending",
-                  ":t": int(time.time()),
-              },
-          )
-          print(f"Approved request {request_id}. Deploying to prod...")
-
-          # Reconstruct thread context and resume
-          messages = [
-              {"role": "user", "content": f"<commit_data>{{\"sha\": \"{sha}\", \"repo\": \"{os.environ['GITHUB_REPOSITORY']}\"}}</commit_data>"},
-              {"role": "assistant", "content": f"Dev deploy succeeded. Prod approval requested: {request_id}"},
-              {"role": "user", "content": f"A human has approved request {request_id}. Deploy to prod and smoke test. Roll back if it fails."},
-          ]
-          loop._save_thread(run_id, messages)
-
-          result = loop.resume_after_approval(run_id, request_id, sha)
           print(json.dumps(result["transcript"], indent=2))
           EOF
