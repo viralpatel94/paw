@@ -20,8 +20,8 @@ ALLOWED_FAMILIES = {"paw-web"}
 
 # Replace placeholder DNS values after ALBs are provisioned.
 SMOKE_ENDPOINTS = {
-    ("paw-web-dev", "dev"): os.environ.get("DEV_SMOKE_URL", "http://paw-dev-alb/"),
-    ("paw-web-prod", "prod"): os.environ.get("PROD_SMOKE_URL", "http://paw-prod-alb/"),
+    ("paw-web-dev", "dev"): os.environ.get("DEV_SMOKE_URL", ""),
+    ("paw-web-prod", "prod"): os.environ.get("PROD_SMOKE_URL", ""),
 }
 
 APPROVALS_TABLE = os.environ.get("APPROVALS_TABLE", "cd-agent-approvals")
