@@ -75,8 +75,6 @@ tools/
   ecs.py            # task definition registration, service updates, rollback
   git.py            # commit diff parsing
   smoke.py          # HTTP health checks
-webhook/
-  server.py         # HTTP approval endpoint (for future prod use)
 .github/workflows/
   deploy.yml        # CI/CD pipeline (build → dev deploy → smoke test)
   scale.yml         # scheduled scale up/down to save cost
