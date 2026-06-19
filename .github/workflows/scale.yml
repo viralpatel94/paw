@@ -37,6 +37,5 @@ jobs:
           COUNT=$([[ "$ACTION" == "up" ]] && echo 1 || echo 0)
           echo "Scaling to $COUNT tasks..."
 
-          aws ecs update-service --cluster paw-dev  --service paw-web-dev  --desired-count $COUNT
-          aws ecs update-service --cluster paw-prod --service paw-web-prod --desired-count $COUNT
-          echo "Done — both services scaled $ACTION"
+          aws ecs update-service --cluster paw-dev --service paw-web-dev --desired-count $COUNT
+          echo "Done — paw-web-dev scaled $ACTION"
